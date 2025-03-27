@@ -94,7 +94,7 @@ const Cart = () => {
         MaKhachHang: maKhachHang,
         TongTien: finalTotal,
         DiaChi: shippingAddress,
-        TrangThai: t('pendingPayment'), // Thêm key
+        TrangThai: "Đang giao", // Thêm key
       });
       const { MaDonHang } = donHangResponse.data;
 
@@ -114,7 +114,7 @@ const Cart = () => {
         MaDonHang: MaDonHang,
         MaPhuongThuc: maPhuongThuc,
         SoTien: finalTotal,
-        TrangThai: t('pendingPayment'),
+        TrangThai: "Chưa thanh toán",
       });
       const { MaThanhToan } = thanhToanResponse.data;
 

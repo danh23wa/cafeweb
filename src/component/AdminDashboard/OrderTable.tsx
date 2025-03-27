@@ -34,7 +34,7 @@ const OrderTable = ({ orders, handleUpdateOrderStatus, totalRevenue }) => {
                   <td>
                     <span
                       className={`badge ${
-                        order.TrangThai === "thanh toán thành công" ? "bg-success" : "bg-warning"
+                        order.TrangThai === "Giao hàng thành công" ? "bg-success" : "bg-warning"
                       }`}
                     >
                       {order.TrangThai}
@@ -46,8 +46,8 @@ const OrderTable = ({ orders, handleUpdateOrderStatus, totalRevenue }) => {
                       value={order.TrangThai}
                       onChange={(e) => handleUpdateOrderStatus(order.MaDonHang, e.target.value)}
                     >
-                      <option value="Chưa thanh toán">{t('notPaid')}</option>
-                      <option value="thanh toán thành công">{t('paid')}</option>
+                      <option value="Giao hàng thành công">Giao hàng thành công</option>
+                      <option value="Đang giao">Đang giao</option>
                     </select>
                   </td>
                 </tr>

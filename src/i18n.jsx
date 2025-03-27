@@ -118,6 +118,7 @@ const resources = {
       "admin": "Quản trị viên",
       "haveAccount": "Đã có tài khoản?",
       "loginLink": "Đăng nhập",
+      "ship": "Giao hàng thành công",
 
       // CategorySection
       "productsFromNhi": "Sản phẩm từ Haven",
@@ -280,6 +281,7 @@ const resources = {
       "accountSettings": "Account Settings",
       "cart": "Cart",
       "adminDashboard": "Admin Dashboard",
+      "ship":"Delivery successful",
 
       // About
       "journeyTitle": "A Journey to Conquer New Flavors",
@@ -545,6 +547,7 @@ const resources = {
         "accountSettings": "账户设置",
         "cart": "购物车",
         "adminDashboard": "管理员面板",
+        "ship":"发货成功",
   
         // About
         "journeyTitle": "征服新口味的旅程",

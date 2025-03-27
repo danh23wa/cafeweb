@@ -60,8 +60,8 @@ module.exports = (pool, translateText) => {
       const result = await pool.request()
         .input('MaKhachHang', sql.Int, MaKhachHang)
         .input('TongTien', sql.Decimal(10, 2), TongTien)
-        .input('DiaChi', sql.VarChar, DiaChi)
-        .input('TrangThai', sql.VarChar, TrangThai || 'Chưa thanh toán')
+        .input('DiaChi', sql.NVarChar, DiaChi)
+        .input('TrangThai', sql.NVarChar, TrangThai || 'Chưa thanh toán')
         .query(`
           INSERT INTO dbo.DonHang (MaKhachHang, TongTien, DiaChi, TrangThai)
           VALUES (@MaKhachHang, @TongTien, @DiaChi, @TrangThai);
@@ -74,7 +74,7 @@ module.exports = (pool, translateText) => {
     }
   });
 
-  // Cập nhật trạng thái đơn hàng
+  // Cập nhật trạng thái đơn hàng (đã xóa phần cập nhật trạng thái thanh toán)
   router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { TrangThai } = req.body;
@@ -82,40 +82,20 @@ module.exports = (pool, translateText) => {
       return res.status(400).send('Trạng thái là bắt buộc');
     }
     try {
-      const transaction = new sql.Transaction(pool);
-      await transaction.begin();
-
-      // Cập nhật trạng thái đơn hàng
-      const updateOrder = await transaction.request()
+      const result = await pool.request()
         .input('MaDonHang', sql.Int, id)
-        .input('TrangThai', sql.VarChar, TrangThai)
+        .input('TrangThai', sql.NVarChar, TrangThai)
         .query(`
           UPDATE dbo.DonHang
           SET TrangThai = @TrangThai
           WHERE MaDonHang = @MaDonHang
         `);
-      if (updateOrder.rowsAffected[0] === 0) {
-        await transaction.rollback();
+      if (result.rowsAffected[0] === 0) {
         return res.status(404).send('Không tìm thấy đơn hàng');
       }
-
-      // Xác định trạng thái thanh toán phù hợp
-      const paymentStatus = TrangThai === "thanh toán thành công" ? "thanh toán thành công" : "chưa thanh toán";
-
-      // Cập nhật trạng thái thanh toán tương ứng với đơn hàng
-      const updatePayment = await transaction.request()
-        .input('MaDonHang', sql.Int, id)
-        .input('TrangThai', sql.VarChar, paymentStatus)
-        .query(`
-          UPDATE dbo.ThanhToan
-          SET TrangThai = @TrangThai
-          WHERE MaDonHang = @MaDonHang
-        `);
-
-      await transaction.commit();
-      res.send('Cập nhật trạng thái đơn hàng và thanh toán thành công');
+      res.send('Cập nhật trạng thái đơn hàng thành công');
     } catch (err) {
-      console.error("Error updating order and payment status:", err);
+      console.error("Error updating order status:", err);
       res.status(500).send('Lỗi server khi cập nhật trạng thái');
     }
   });

@@ -25,9 +25,17 @@ function App() {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error('Lỗi parse JSON:', error);
+        localStorage.removeItem('user'); // Xóa dữ liệu hỏng
+        setUser(null);
+      }
     }
   }, []);
+  
+  
 
   const handleLoginSuccess = useCallback((userInfo) => {
     setUser(userInfo);

@@ -17,60 +17,59 @@ const LoginPage = ({ onLoginSuccess }) => {
   const location = useLocation();
 
   useEffect(() => {
-    const checkLoginStatus = async () => {
-      const justLoggedOut = localStorage.getItem('justLoggedOut') === 'true' || location.state?.justLoggedOut;
-      if (justLoggedOut) {
-        console.log('Bỏ qua kiểm tra vì vừa đăng xuất');
-        localStorage.removeItem('justLoggedOut'); // Xóa cờ sau khi kiểm tra
-        setLoading(false);
-        return;
+    const handleGitHubCallback = async () => {
+      const params = new URLSearchParams(location.search);
+      const token = params.get('token');
+      const provider = params.get('provider');
+
+      if (token && provider === 'github') {
+        setLoading(true);
+        try {
+          // Gửi token đến backend để lấy thông tin user
+          const response = await axios.get('http://localhost:3000/api/nguoidung/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const user = response.data.user;
+          if (!user) throw new Error(t('noUserInfo'));
+
+          localStorage.setItem('user', JSON.stringify(user));
+          if (onLoginSuccess) onLoginSuccess(user);
+          setSuccess(t('loginSuccess'));
+          setTimeout(() => navigate('/'), 1500);
+        } catch (err) {
+          console.error('GitHub login error:', err.response?.data || err.message);
+          setError(t('githubLoginError'));
+        } finally {
+          setLoading(false);
+        }
       }
+    };
 
-      const urlParams = new URLSearchParams(location.search);
-      const tokenFromUrl = urlParams.get('token');
-      const storedToken = localStorage.getItem('token');
-      const token = tokenFromUrl || storedToken;
-
-      console.log('Token từ URL (GitHub):', tokenFromUrl);
-      console.log('Token từ localStorage:', storedToken);
-      console.log('Token sẽ sử dụng:', token);
-
-      // Chỉ kiểm tra token nếu có token từ URL (tức là vừa đăng nhập qua GitHub)
-      if (!tokenFromUrl) {
-        console.log('Không có token từ URL, không tự động kiểm tra');
+    const checkLoginStatus = async () => {
+      if (location.state?.justLoggedOut) {
         setLoading(false);
         return;
       }
 
       setLoading(true);
       try {
-        const headers = { 'Authorization': `Bearer ${token}` };
-        console.log('Headers gửi đi:', headers);
-        const response = await axios.get('http://localhost:3000/api/nguoidung/me', {
-          headers: headers,
-        });
-        console.log('Response từ /me:', response.data);
+        const response = await axios.get('http://localhost:3000/api/nguoidung/me', { withCredentials: true });
         const user = response.data.user;
         if (!user) throw new Error(t('noUserInfo'));
-
         localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('token', token);
         if (onLoginSuccess) onLoginSuccess(user);
         setSuccess(t('loginSuccess'));
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 1500);
+        setTimeout(() => navigate('/'), 1500);
       } catch (err) {
-        console.error('Lỗi khi kiểm tra trạng thái đăng nhập:', err.response?.data || err.message);
-        setError(`${t('loginError')} ${err.response?.data?.message || err.message}`);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        console.error('Error checking login status:', err.response?.data || err.message);
       } finally {
         setLoading(false);
       }
     };
-    checkLoginStatus();
-  }, [navigate, onLoginSuccess, t, location.search]);
+
+    handleGitHubCallback();
+    if (!location.search.includes('token')) checkLoginStatus();
+  }, [navigate, onLoginSuccess, t, location.search, location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,6 +82,7 @@ const LoginPage = ({ onLoginSuccess }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ Email: email, MatKhau: matKhau }),
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -91,9 +91,8 @@ const LoginPage = ({ onLoginSuccess }) => {
       }
 
       const result = await response.json();
-      localStorage.setItem('user', JSON.stringify(result.user));
-      localStorage.setItem('token', result.token);
-      if (onLoginSuccess) onLoginSuccess(result.user);
+      localStorage.setItem('user', JSON.stringify(result));
+      if (onLoginSuccess) onLoginSuccess(result);
       setSuccess(t('loginSuccess'));
       setTimeout(() => navigate('/'), 1500);
     } catch (error) {
@@ -116,11 +115,12 @@ const LoginPage = ({ onLoginSuccess }) => {
           ProviderID: userInfo.data.sub,
         };
 
-        const res = await axios.post('http://localhost:3000/api/nguoidung/google-login', user);
-        const { user: userFromBackend, token } = res.data;
+        const res = await axios.post('http://localhost:3000/api/nguoidung/google-login', user, {
+          withCredentials: true,
+        });
+        const { user: userFromBackend } = res.data;
 
         localStorage.setItem('user', JSON.stringify(userFromBackend));
-        localStorage.setItem('token', token);
         if (onLoginSuccess) onLoginSuccess(userFromBackend);
         setSuccess(t('loginSuccess'));
         setTimeout(() => navigate('/'), 1500);
@@ -137,16 +137,11 @@ const LoginPage = ({ onLoginSuccess }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:3000/api/nguoidung/logout');
+      await axios.post('http://localhost:3000/api/nguoidung/logout', {}, { withCredentials: true });
       localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      localStorage.setItem('justLoggedOut', 'true');
       googleLogout();
       setSuccess(t('logoutSuccess'));
-      setEmail('');
-      setMatKhau('');
-      setError('');
-      navigate('/login', { state: { justLoggedOut: true }, replace: true });
+      navigate('/login', { state: { justLoggedOut: true } });
     } catch (err) {
       console.error('Lỗi đăng xuất:', err);
       setError(t('logoutError'));
@@ -218,6 +213,7 @@ const LoginPage = ({ onLoginSuccess }) => {
                   <i className="fab fa-github"></i> GitHub
                 </button>
               </div>
+              
             </div>
           </div>
         </div>
