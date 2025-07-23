@@ -42,12 +42,13 @@ const AccountSettings = () => {
           const response = await axios.get(`http://localhost:3000/api/auth/users/${parsedUser.MaNguoiDung}`, {
             params: { lang: i18n.language },
           });
-          setUser(response.data);
+          const userData = response.data.data;
+          setUser(userData);
           setFormData({
-            MaNguoiDung: response.data.MaNguoiDung,
-            TenNguoiDung: response.data.TenNguoiDung, 
-            SoDienThoai: response.data.SoDienThoai || "",
-            Email: response.data.Email,
+            MaNguoiDung: userData.MaNguoiDung,
+            TenNguoiDung: userData.TenNguoiDung, 
+            SoDienThoai: userData.SoDienThoai || "",
+            Email: userData.Email,
           });
         } catch (error) {
           console.error("Error fetching user:", error);
@@ -56,10 +57,13 @@ const AccountSettings = () => {
 
       const fetchOrders = async () => {
         try {
-          const response = await axios.get(`http://localhost:3000/api/orders/user/${parsedUser.MaNguoiDung}`, {
+          const storedUser = localStorage.getItem("user");
+          const token = storedUser ? JSON.parse(storedUser).token : null;
+          const response = await axios.get(`http://localhost:3000/api/orders/customer/${parsedUser.MaNguoiDung}`, {
+            headers: { Authorization: token ? `Bearer ${token}` : "" },
             params: { lang: i18n.language },
           });
-          setOrders(response.data);
+          setOrders(response.data.data);
         } catch (error) {
           console.error("Error fetching orders:", error);
         }
@@ -92,9 +96,15 @@ const AccountSettings = () => {
       if (!user) {
         throw new Error("User not found");
       }
-      await axios.put(`http://localhost:3000/api/auth/users/${user.MaNguoiDung}`, formData);
+      const storedUser = localStorage.getItem("user");
+      const token = storedUser ? JSON.parse(storedUser).token : null;
+      await axios.put(
+        `http://localhost:3000/api/auth/users/${user.MaNguoiDung}`,
+        formData,
+        token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+      );
       setUser({ ...user, ...formData });
-      localStorage.setItem("user", JSON.stringify({ ...user, ...formData }));
+      localStorage.setItem("user", JSON.stringify({ ...user, ...formData, token }));
       setEditMode(false);
       alert(t("saveChangesSuccess"));
     } catch (error) {
@@ -108,8 +118,14 @@ const AccountSettings = () => {
       if (!user) {
         throw new Error("User not found");
       }
-      const response = await axios.put(`http://localhost:3000/api/auth/users/${user.MaNguoiDung}/password`, passwordData);
-      alert(response.data);
+      const storedUser = localStorage.getItem("user");
+      const token = storedUser ? JSON.parse(storedUser).token : null;
+      const response = await axios.put(
+        `http://localhost:3000/api/auth/change-password`,
+        passwordData,
+        token ? { headers: { Authorization: `Bearer ${token}` } } : {}
+      );
+      alert(response.data.message || response.data);
       setShowChangePassword(false);
     } catch (error) {
       console.error("Error changing password:", error);
