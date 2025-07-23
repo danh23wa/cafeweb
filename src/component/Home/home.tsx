@@ -11,11 +11,8 @@ const Home = () => {
       <div className="container">
         <AboutSection />
         <PromotionSection />
-
         <StoreSection />
         <NewsSection />
-        
-
       </div>
     </div>
   );
